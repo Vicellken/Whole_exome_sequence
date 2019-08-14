@@ -57,7 +57,7 @@ samtools index NexteraB.mapped.sorted.bam
 
 
 ### step 3: mark and remove duplicates
-module Picard/2.18.9
+module load Picard/2.18.9
 
 java -jar /software/Picard/2.18.9/picard.jar MarkDuplicates \
   I=NexteraA.mapped.sorted.bam \
@@ -130,6 +130,8 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Appl
 
 
 ## step 5, generate .vcf .gvcf file
+## be careful when specify the -R reference file,
+## different test/dataset requires different reference .fa file 
 module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
 
 java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar HaplotypeCaller \
@@ -143,3 +145,16 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Hapl
   -I $PBS_O_WORKDIR/NexteraA.marked_duplicates.add.apply.bam \
   -O NexteraA.output.g.vcf.gz \
   -ERC GVCF
+
+## generate .vcf file + .bam file
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar HaplotypeCaller \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -I $PBS_O_WORKDIR/NexteraA.marked_duplicates.add.apply.bam \
+  -O NexteraA.output.vcf.gz \
+  -bamout NexteraA.bamout.bam
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar HaplotypeCaller \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -I $PBS_O_WORKDIR/NexteraB.marked_duplicates.add.apply.bam \
+  -O NexteraB.output.vcf.gz \
+  -bamout NexteraB.bamout.bam
