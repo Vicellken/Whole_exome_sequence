@@ -127,3 +127,19 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Appl
         -I $PBS_O_WORKDIR/NexteraB.marked_duplicates.add.bam \
         --bqsr-recal-file $PBS_O_WORKDIR/NexteraA.recal_data.table \
         -O $PBS_O_WORKDIR/NexteraB.marked_duplicates.add.apply.bam
+
+
+## step 5, generate .vcf .gvcf file
+module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar HaplotypeCaller \
+	-R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+	-I $PBS_O_WORKDIR/NexteraA.marked_duplicates.add.apply.bam \
+	-O NexteraA.output.g.vcf.gz \
+	-ERC GVCF
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar HaplotypeCaller \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -I $PBS_O_WORKDIR/NexteraA.marked_duplicates.add.apply.bam \
+  -O NexteraA.output.g.vcf.gz \
+  -ERC GVCF
