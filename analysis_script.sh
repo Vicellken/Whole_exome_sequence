@@ -131,9 +131,11 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Appl
 
 ## step 5, generate .vcf .gvcf file
 ## be careful when specify the -R reference file,
-## different test/dataset requires different reference .fa file 
+## different test/dataset requires different reference .fa file
 module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
-
+## use the tool HaplotypeCaller
+## the memory required for generate .gvcf better set higher
+## in this case, use mem = 20g (run time error when mem = 10g)
 java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar HaplotypeCaller \
 	-R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
 	-I $PBS_O_WORKDIR/NexteraA.marked_duplicates.add.apply.bam \
@@ -158,3 +160,42 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Hapl
   -I $PBS_O_WORKDIR/NexteraB.marked_duplicates.add.apply.bam \
   -O NexteraB.output.vcf.gz \
   -bamout NexteraB.bamout.bam
+
+### follow the guide in GATK, set color by tag 'HC', however, the visualization
+### did not make sense unless the INDEL been defined
+
+mkdir database
+
+## here run into issue...
+## how to specify the intervals
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar \
+  --java-options "-Xmx4g" GenomicsDBImport \
+    -V $PBS_O_WORKDIR/NexteraA.output.g.vcf.gz \
+    #-V $PBS_O_WORKDIR/NexteraB.output.g.vcf.gz \
+    --genomicsdb-workspace-path database/NexteraA_database \
+    -L 20
+
+java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar \
+  --java-options "-Xmx4g -Xms4g" GenotypeGVCFs \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/database/NexteraA_database \
+  -O output.NexteraA.vcf.gz
+
+### maybe skip this step, use the previous generated .vcf file to run VariantRecalibrator
+
+module load R/3.4.3
+
+java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantRecalibrator \
+   -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+   -V NexteraA.output.vcf.gz \
+   --resource hapmap,known=false,training=true,truth=true,prior=15.0:hapmap_3.3.hg38.sites.vcf.gz \
+   --resource omni,known=false,training=true,truth=false,prior=12.0:1000G_omni2.5.hg38.sites.vcf.gz \
+   --resource 1000G,known=false,training=true,truth=false,prior=10.0:1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+   --resource dbsnp,known=true,training=false,truth=false,prior=2.0:Homo_sapiens_assembly38.dbsnp138.vcf.gz \
+   -an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
+   -mode SNP \
+   --recal-file NexteraA.output.recal \
+   --tranches-file NexteraA.output.tranches \
+   --rscript-file NexteraA.output.plots.R
+
+# failed,,, so sad :(
