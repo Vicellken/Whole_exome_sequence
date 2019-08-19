@@ -3,7 +3,7 @@
 #PBS -l walltime=48:00:00
 #PBS -N analysis_combined_scripts
 #PBS -m abe
-#PBS -M guyf0601@gmail.com
+#PBS -M youremailaddress
 #PBS -q bep
 
 cd $PBS_O_WORKDIR
@@ -184,29 +184,50 @@ java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar \
 
 ### maybe skip this step, use the previous generated .vcf file to run VariantRecalibrator
 
-module load R/3.4.3
+#module load R/3.4.3
 
-java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantRecalibrator \
-   -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-   -V NexteraA.output.vcf.gz \
-   --resource hapmap,known=false,training=true,truth=true,prior=15.0:hapmap_3.3.hg38.sites.vcf.gz \
-   --resource omni,known=false,training=true,truth=false,prior=12.0:1000G_omni2.5.hg38.sites.vcf.gz \
-   --resource 1000G,known=false,training=true,truth=false,prior=10.0:1000G_phase1.snps.high_confidence.hg38.vcf.gz \
-   --resource dbsnp,known=true,training=false,truth=false,prior=2.0:Homo_sapiens_assembly38.dbsnp138.vcf.gz \
-   -an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
-   -mode SNP \
-   --recal-file NexteraA.output.recal \
-   --tranches-file NexteraA.output.tranches \
-   --rscript-file NexteraA.output.plots.R
+#java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantRecalibrator \
+   #-R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+   #-V NexteraA.output.vcf.gz \
+   #--resource haspmap,known=false,training=true,truth=true,prior=15.0:hapmap_3.3.hg38.sites.vcf.gz \
+   #--resource omni,known=false,training=true,truth=false,prior=12.0:1000G_omni2.5.hg38.sites.vcf.gz \
+   #--resource 1000G,known=false,training=true,truth=false,prior=10.0:1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+   #--resource dbsnp,known=true,training=false,truth=false,prior=2.0:Homo_sapiens_assembly38.dbsnp138.vcf.gz \
+   #-an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
+   #-mode SNP \
+   #--recal-file NexteraA.output.recal \
+   #--tranches-file NexteraA.output.tranches \
+   #--rscript-file NexteraA.output.plots.R
 
 # failed,,, so sad :(
+### update this step, notice the difference in syntax
+
+
+cd $PBS_O_WORKDIR
+
+module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
+module load R/3.4.3 ggplot2/r3.4.3_2.2.1
+
+java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantRecalibrator \
+        -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+	-V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
+	-resource:hapmap,known=false,training=true,truth=true,prior=15.0 hapmap_3.3.hg38.vcf.gz \
+	-resource:omni,known=false,training=true,truth=false,prior=12.0 1000G_omni2.5.hg38.vcf.gz \
+	-resource:1000G,known=false,training=true,truth=false,prior=10.0 1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+	-resource:dbsnp,known=true,training=false,truth=false,prior=2.0 Homo_sapiens_assembly38.dbsnp138.vcf \
+	-an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
+	-mode BOTH \
+	--output $PBS_O_WORKDIR/NexteraA.output.all.recal \
+	--tranches-file $PBS_O_WORKDIR/NexteraA.output.all.tranches \
+	--rscript-file $PBS_O_WORKDIR/NexteraA.output.all.plots.R
+
 
 ### skip the previous step 6, go to step 7
 # generate select variants
 
 module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
 
-## notice the difference in stax for different GATK version
+## notice the difference in syntax for different GATK version
 java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
   -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
   -V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
@@ -214,22 +235,99 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Sele
   -O $PBS_O_WORKDIR/RawSNP_A.vcf
 
 
-java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
   -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
   -V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
   -select-type INDEL \
   -O $PBS_O_WORKDIR/RawINDEL_A.vcf
 
 
-  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
     -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
     -V $PBS_O_WORKDIR/NexteraB.output.vcf.gz \
     -select-type SNP \
     -O $PBS_O_WORKDIR/RawSNP_B.vcf
 
 
-  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
     -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
     -V $PBS_O_WORKDIR/NexteraB.output.vcf.gz \
     -select-type INDEL \
     -O $PBS_O_WORKDIR/RawINDEL_B.vcf
+
+
+### step 8: VariantFiltration in GATK4
+module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/RawSNP_A.vcf \
+  -O $PBS_O_WORKDIR/RawSNP_Filtered_A.vcf \
+  --filterExpression "QD < 2.0" --filterName "LowQD" \
+  --filterExpression "FS > 60.0" --filterName "StrandBias" \
+  --filterExpression "MQ < 40.0" --filterName "LowMQ" \
+  --filterExpression "MQRankSum < -12.5" --filterName "LowMQRankSum" \
+  --filterExpression "ReadPosRankSum < -8.0" --filterName "LowReadPosRankSum"
+
+
+  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
+    -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+    -V $PBS_O_WORKDIR/RawINDEL_A.vcf \
+    -O $PBS_O_WORKDIR/RawINDEL_Filtered_A.vcf \
+    --filterExpression "QD < 2.0" --filterName "LowQD" \
+    --filterExpression "FS > 200.0" --filterName "StrandBias" \
+    --filterExpression "ReadPosRankSum < -20.0" --filterName "LowReadPosRankSum"
+
+
+    java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
+      -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+      -V $PBS_O_WORKDIR/RawSNP_B.vcf \
+      -O $PBS_O_WORKDIR/RawSNP_Filtered_B.vcf \
+      --filterExpression "QD < 2.0" --filterName "LowQD" \
+      --filterExpression "FS > 60.0" --filterName "StrandBias" \
+      --filterExpression "MQ < 40.0" --filterName "LowMQ" \
+      --filterExpression "MQRankSum < -12.5" --filterName "LowMQRankSum" \
+      --filterExpression "ReadPosRankSum < -8.0" --filterName "LowReadPosRankSum"
+
+
+      java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
+        -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+        -V $PBS_O_WORKDIR/RawINDEL_B.vcf \
+        -O $PBS_O_WORKDIR/RawINDEL_Filtered_B.vcf \
+        --filterExpression "QD < 2.0" --filterName "LowQD" \
+        --filterExpression "FS > 200.0" --filterName "StrandBias" \
+        --filterExpression "ReadPosRankSum < -20.0" --filterName "LowReadPosRankSum"
+
+
+## step 9: applyVQSR
+
+#!/bin/bash
+#PBS -l select=1:ncpus=4:mem=10gb
+#PBS -l walltime=48:00:00
+#PBS -N ApplyVQSR
+#PBS -m abe
+#PBS -M ....@gmail.com
+#PBS -q bep
+
+cd $PBS_O_WORKDIR
+
+module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar ApplyVQSR \
+	-R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+	-V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
+	-O $PBS_O_WORKDIR/NexteraA.output.vqsr.vcf.gz \
+	-ts-filter-level 99.0 \
+	--tranches-file $PBS_O_WORKDIR/NexteraA.output.all.tranches \
+	--recal-file $PBS_O_WORKDIR/NexteraA.output.all.recal \
+	-mode BOTH
+
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar ApplyVQSR \
+	-R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+	-V $PBS_O_WORKDIR/NexteraB.output.vcf.gz \
+	-O $PBS_O_WORKDIR/NexteraB.output.vqsr.vcf.gz \
+	-ts-filter-level 99.0 \
+	--tranches-file $PBS_O_WORKDIR/NexteraB.output.all.tranches \
+	--recal-file $PBS_O_WORKDIR/NexteraB.output.all.recal \
+	-mode BOTH
