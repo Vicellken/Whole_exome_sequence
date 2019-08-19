@@ -137,7 +137,7 @@ module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
 ## the memory required for generate .gvcf better set higher
 ## in this case, use mem = 20g (run time error when mem = 10g)
 java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar HaplotypeCaller \
-	-R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
 	-I $PBS_O_WORKDIR/NexteraA.marked_duplicates.add.apply.bam \
 	-O NexteraA.output.g.vcf.gz \
 	-ERC GVCF
@@ -161,6 +161,7 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Hapl
   -O NexteraB.output.vcf.gz \
   -bamout NexteraB.bamout.bam
 
+## step 6: follow the GATK best practise, generate database
 ### follow the guide in GATK, set color by tag 'HC', however, the visualization
 ### did not make sense unless the INDEL been defined
 
@@ -199,3 +200,36 @@ java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Var
    --rscript-file NexteraA.output.plots.R
 
 # failed,,, so sad :(
+
+### skip the previous step 6, go to step 7
+# generate select variants
+
+module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
+
+## notice the difference in stax for different GATK version
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
+  -select-type SNP \
+  -O $PBS_O_WORKDIR/RawSNP_A.vcf
+
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
+  -select-type INDEL \
+  -O $PBS_O_WORKDIR/RawINDEL_A.vcf
+
+
+  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+    -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+    -V $PBS_O_WORKDIR/NexteraB.output.vcf.gz \
+    -select-type SNP \
+    -O $PBS_O_WORKDIR/RawSNP_B.vcf
+
+
+  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+    -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+    -V $PBS_O_WORKDIR/NexteraB.output.vcf.gz \
+    -select-type INDEL \
+    -O $PBS_O_WORKDIR/RawINDEL_B.vcf
