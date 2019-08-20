@@ -184,23 +184,10 @@ java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar \
 
 ### maybe skip this step, use the previous generated .vcf file to run VariantRecalibrator
 
-#module load R/3.4.3
 
-#java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantRecalibrator \
-   #-R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-   #-V NexteraA.output.vcf.gz \
-   #--resource haspmap,known=false,training=true,truth=true,prior=15.0:hapmap_3.3.hg38.sites.vcf.gz \
-   #--resource omni,known=false,training=true,truth=false,prior=12.0:1000G_omni2.5.hg38.sites.vcf.gz \
-   #--resource 1000G,known=false,training=true,truth=false,prior=10.0:1000G_phase1.snps.high_confidence.hg38.vcf.gz \
-   #--resource dbsnp,known=true,training=false,truth=false,prior=2.0:Homo_sapiens_assembly38.dbsnp138.vcf.gz \
-   #-an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
-   #-mode SNP \
-   #--recal-file NexteraA.output.recal \
-   #--tranches-file NexteraA.output.tranches \
-   #--rscript-file NexteraA.output.plots.R
-
-# failed,,, so sad :(
-### update this step, notice the difference in syntax
+## step 7: VariantRecalibrator
+### notice the difference in syntax
+### depending on the operation environment, sometimes manualy load modules is required
 
 
 cd $PBS_O_WORKDIR
@@ -222,84 +209,7 @@ java  -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Var
 	--rscript-file $PBS_O_WORKDIR/NexteraA.output.all.plots.R
 
 
-### skip the previous step 6, go to step 7
-# generate select variants
-
-module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
-
-## notice the difference in syntax for different GATK version
-java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
-  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-  -V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
-  -select-type SNP \
-  -O $PBS_O_WORKDIR/RawSNP_A.vcf
-
-
-java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
-  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-  -V $PBS_O_WORKDIR/NexteraA.output.vcf.gz \
-  -select-type INDEL \
-  -O $PBS_O_WORKDIR/RawINDEL_A.vcf
-
-
-  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
-    -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-    -V $PBS_O_WORKDIR/NexteraB.output.vcf.gz \
-    -select-type SNP \
-    -O $PBS_O_WORKDIR/RawSNP_B.vcf
-
-
-  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
-    -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-    -V $PBS_O_WORKDIR/NexteraB.output.vcf.gz \
-    -select-type INDEL \
-    -O $PBS_O_WORKDIR/RawINDEL_B.vcf
-
-
-### step 8: VariantFiltration in GATK4
-module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
-
-java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
-  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-  -V $PBS_O_WORKDIR/RawSNP_A.vcf \
-  -O $PBS_O_WORKDIR/RawSNP_Filtered_A.vcf \
-  --filterExpression "QD < 2.0" --filterName "LowQD" \
-  --filterExpression "FS > 60.0" --filterName "StrandBias" \
-  --filterExpression "MQ < 40.0" --filterName "LowMQ" \
-  --filterExpression "MQRankSum < -12.5" --filterName "LowMQRankSum" \
-  --filterExpression "ReadPosRankSum < -8.0" --filterName "LowReadPosRankSum"
-
-
-  java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
-    -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-    -V $PBS_O_WORKDIR/RawINDEL_A.vcf \
-    -O $PBS_O_WORKDIR/RawINDEL_Filtered_A.vcf \
-    --filterExpression "QD < 2.0" --filterName "LowQD" \
-    --filterExpression "FS > 200.0" --filterName "StrandBias" \
-    --filterExpression "ReadPosRankSum < -20.0" --filterName "LowReadPosRankSum"
-
-
-    java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
-      -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-      -V $PBS_O_WORKDIR/RawSNP_B.vcf \
-      -O $PBS_O_WORKDIR/RawSNP_Filtered_B.vcf \
-      --filterExpression "QD < 2.0" --filterName "LowQD" \
-      --filterExpression "FS > 60.0" --filterName "StrandBias" \
-      --filterExpression "MQ < 40.0" --filterName "LowMQ" \
-      --filterExpression "MQRankSum < -12.5" --filterName "LowMQRankSum" \
-      --filterExpression "ReadPosRankSum < -8.0" --filterName "LowReadPosRankSum"
-
-
-      java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantFiltration \
-        -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-        -V $PBS_O_WORKDIR/RawINDEL_B.vcf \
-        -O $PBS_O_WORKDIR/RawINDEL_Filtered_B.vcf \
-        --filterExpression "QD < 2.0" --filterName "LowQD" \
-        --filterExpression "FS > 200.0" --filterName "StrandBias" \
-        --filterExpression "ReadPosRankSum < -20.0" --filterName "LowReadPosRankSum"
-
-
-## step 9: applyVQSR
+## step 8: applyVQSR
 
 #!/bin/bash
 #PBS -l select=1:ncpus=4:mem=10gb
