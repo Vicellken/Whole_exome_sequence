@@ -241,3 +241,21 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Appl
 	--tranches-file $PBS_O_WORKDIR/NexteraB.output.all.tranches \
 	--recal-file $PBS_O_WORKDIR/NexteraB.output.all.recal \
 	-mode BOTH
+
+
+
+## CalculateGenotypePosteriors
+wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf
+wget https:////storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf.idx
+
+module load java/8.0_161 GenomeAnalysisTK/4.1.2.0
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar CalculateGenotypePosteriors \
+      -V NexteraA.output.vqsr.vcf.gz \
+      -O NexteraA.output.1000G_PPs.vcf.gz \
+      -supporting 1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar CalculateGenotypePosteriors \
+      -V NexteraB.output.vqsr.vcf.gz \
+      -O NexteraB.output.1000G_PPs.vcf.gz \
+      -supporting 1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf
