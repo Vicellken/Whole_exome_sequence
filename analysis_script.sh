@@ -244,7 +244,7 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Appl
 
 
 
-## CalculateGenotypePosteriors
+## step 9: CalculateGenotypePosteriors
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf
 wget https:////storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf.idx
 
@@ -259,3 +259,83 @@ java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar Calc
       -V NexteraB.output.vqsr.vcf.gz \
       -O NexteraB.output.1000G_PPs.vcf.gz \
       -supporting 1000G.phase3.integrated.sites_only.no_MATCHED_REV.hg38.vcf
+
+
+## step 10: VariantAnnotator to generate new .vcf file (note its different from the other selection)
+cd $PBS_O_WORKDIR
+
+module load java/8.0_161
+module load GenomeAnalysisTK/4.1.2.0
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantAnnotator \
+     -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+     -I $PBS_O_WORKDIR/NexteraA.marked_duplicates.add.apply.bam \
+     -V $PBS_O_WORKDIR/NexteraA.output.1000G_PPs.filter.vcf.gz \
+     -O NexteraA.Refinement.vcf \
+     -A Coverage \
+     --dbsnp $PBS_O_WORKDIR/Homo_sapiens_assembly38.dbsnp138.vcf
+
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar VariantAnnotator \
+     -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+     -I $PBS_O_WORKDIR/NexteraB.marked_duplicates.add.apply.bam \
+     -V $PBS_O_WORKDIR/NexteraB.output.1000G_PPs.filter.vcf.gz \
+     -O NexteraB.Refinement.vcf \
+     -A Coverage \
+     --dbsnp $PBS_O_WORKDIR/Homo_sapiens_assembly38.dbsnp138.vcf
+
+
+## step 11: SelectVariants
+cd $PBS_O_WORKDIR
+
+module load java/8.0_161
+module load GenomeAnalysisTK/4.1.2.0
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/NexteraA.Refinement.vcf \
+  -select-type SNP \
+  -O $PBS_O_WORKDIR/NexteraA.RawSNP.vcf
+
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/NexteraA.Refinement.vcf \
+  -select-type INDEL \
+  -O $PBS_O_WORKDIR/NexteraA.RawINDEL.vcf
+
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants\
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/NexteraB.Refinement.vcf \
+  -select-type SNP \
+  -O $PBS_O_WORKDIR/NexteraB.RawSNP.vcf
+
+
+java -jar /software/GenomeAnalysisTK/4.1.2.0/gatk-package-4.1.2.0-local.jar SelectVariants \
+  -R $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+  -V $PBS_O_WORKDIR/NexteraB.Refinement.vcf \
+  -select-type INDEL \
+  -O $PBS_O_WORKDIR/NexteraB.RawINDEL.vcf
+
+
+
+# step 12: ANNOVAR
+cd $PBS_O_WORKDIR
+
+module load ANNOVAR/2018Apr16
+
+table_annovar.pl $PBS_O_WORKDIR/NexteraA.RawSNP.vcf \
+/home/BEP/2019/WGS_Exome/Reference/ANNOVAR/humandb_2018 \
+-buildver hg38 \
+-out $PBS_O_WORKDIR/NexteraA.RawSNP.annovar \
+-remove -protocol refGene,cytoBand,genomicSuperDups,esp6500siv2_all,1000g2015aug_all,1000g2015aug_eas,exac03,exac03nontcga,exac03nonpsych,kaviar_20150923,avsnp150,dbnsfp35a,cosmic70,clinvar_20180603,nci60,hrcr1,mcap,revel,1000g2015aug_eur,intervar_20180118,regsnpintron,dbscsnv11 \
+-operation g,r,r,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f -nastring . --thread 2 -vcfinput
+
+
+table_annovar.pl $PBS_O_WORKDIR/NexteraA.RawINDEL.vcf \
+/home/BEP/2019/WGS_Exome/Reference/ANNOVAR/humandb_2018 \
+-buildver hg38 \
+-out $PBS_O_WORKDIR/NexteraA.RawINDEL.annovar \
+-remove -protocol refGene,cytoBand,genomicSuperDups,esp6500siv2_all,1000g2015aug_all,1000g2015aug_eas,exac03,exac03nontcga,exac03nonpsych,kaviar_20150923,avsnp150,dbnsfp35a,cosmic70,clinvar_20180603,nci60,hrcr1,mcap,revel,1000g2015aug_eur,regsnpintron,dbscsnv11 \
+-operation g,r,r,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f -nastring . --thread 2 -vcfinput
