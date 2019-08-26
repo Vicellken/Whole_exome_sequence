@@ -76,9 +76,9 @@ java -jar /software/Picard/2.18.9/picard.jar MarkDuplicates \
 ## wget .vcf file from database and its coresponding index file
 
 ## create .dict file
-#java -jar /software/Picard/2.18.9/picard.jar CreateSequenceDictionary \
-#      REFERENCE= $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
-#      OUTPUT= $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.dict
+java -jar /software/Picard/2.18.9/picard.jar CreateSequenceDictionary \
+      REFERENCE= $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa \
+      OUTPUT= $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.dict
 
 ## create .fai file
 #samtools faidx $PBS_O_WORKDIR/reference/GRCh38.primary_assembly.genome.fa
