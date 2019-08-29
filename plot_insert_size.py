@@ -5,7 +5,7 @@
 ## pre-selecting insert data from .sam file
 ## hereby use 'awk' in linux environment
 
-#awk '{print $9}' NexteraB.mapped.sam | awk '$1 > 0' > pyplot.insert.size.NexteraB
+awk '{print $9}' NexteraB.mapped.sam | awk '$1 > 0' > pyplot.insert.size.NexteraB
 
 
 ## below is python script in linux environment
